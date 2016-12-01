@@ -1,13 +1,13 @@
 {
   "name": "polytempl",
-  "version": "0.0.2",
+  "version": "0.0.32",
   "description": "Plugin for buildig polymer project",
   "main": "index.js",
   "scripts": {
 
   },
   "bin": {
-    "polytempl": "bin/polytempl"
+    "polytempl": "./index.js"
   },
   "repository": {
     "type": "git",
