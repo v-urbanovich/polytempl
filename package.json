@@ -1,0 +1,25 @@
+{
+  "name": "polytempl",
+  "version": "0.0.1",
+  "description": "Plugin for buildig polymer project",
+  "main": "index.js",
+  "scripts": {
+
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/v-urbanovich/polytempl.git"
+  },
+  "author": "Uladzimir Urbanovich",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/v-urbanovich/polytempl/issues"
+  },
+  "homepage": "https://github.com/v-urbanovich/polytempl#readme",
+  "dependencies": {
+    "through2": "^2.0.3",
+    "vinyl-file": "^2.0.0",
+    "vinyl-fs": "^2.4.4",
+    "yargs": "^6.4.0"
+  }
+}
