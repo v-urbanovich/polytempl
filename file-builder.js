@@ -8,7 +8,7 @@ var through2 = require('through2').obj,
     path = require('path'),
     fs = require('fs');
 
-var STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss)\s*'\s*-->/g,
+var STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss|.*\.css|.*\.less|.*\.sass)\s*'\s*-->/g,
     SCRIPTS_REG = /<!--\s*inject\s+scripts\s+'(.*\.js)\s*'\s*-->/g,
     IMPORTS_REG = /<!--\s*import\s*\[([\s\S]*?)]\s*-->/g;
 
