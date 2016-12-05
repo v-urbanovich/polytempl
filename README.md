@@ -20,7 +20,7 @@ If no option provided this command will create directory and html file named `<e
 - `-j`|`--script`: export script to separate js file, replace script tag with `<!-- inject scripts './<element_name>.js' -->` 
 - `-s`|`--styles`: export styles to separate css file, replace script tag with `<!-- inject styles './<element_name>.css' -->`. 
 You can set this option to scss|less if you want to use preprocessors(css by default).
-- `-i`|`--imports`: add `<!-- import [polymer]-->` line to html template file to use polytempl builder
+- `-i`|`--imports`: add `<!-- import [polymer]-->` line to html template file to use it in polytempl builder 
 
 Example:
 
@@ -57,7 +57,6 @@ Polytempl({
 `new-element.scss`:
 
 ```scss
-<!-- import [polymer]-->
 :host {
     position: relative;
     display: block;
@@ -74,7 +73,7 @@ Polytempl builder will replace `<!-- inject styles 'path_to_your_file'-->` and `
 
 Polytempl helps you to manage your imports. 
 For example if you have following structure:
-
+```
 |- my-elements/
     |- first/
         |- element_1/
@@ -85,7 +84,7 @@ For example if you have following structure:
         |- another/
             |- element_5/
 |- bower_components/
-
+```
 you can type `<!-- import [polymer, element_3, element_5, element_1, iron-icons]-->` and polytempl will resolve all paths an replace this with `<link rel="import" href="resolved_path">`
 
 #### Usage
