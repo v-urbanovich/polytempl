@@ -113,6 +113,12 @@ var Builder = function () {
 function injectStyles(file) {
     return function (s, filename) {
         var file_path = path.resolve(file.dirname, filename);
+        var exist = fs.existsSync(file_path);
+        if (!exist) {
+            console.error('\x1B[31mCan not inject styles, file \x1B[0m \x1B[32m\x1B[41m\'' + filename + '\'\x1B[0m \x1B[31min not found\x1B[0m');
+            console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
+            return '';
+        }
         var style = fs.readFileSync(file_path, 'utf8');
 
         return '<style>\n' + style + '\n</style>';
@@ -122,6 +128,12 @@ function injectStyles(file) {
 function injectScripts(file) {
     return function (s, filename) {
         var file_path = path.resolve(file.dirname, filename);
+        var exist = fs.existsSync(file_path);
+        if (!exist) {
+            console.error('\x1B[31mCan not inject styles, file \x1B[0m \x1B[32m\x1B[41m\'' + filename + '\'\x1B[0m \x1B[31min not found\x1B[0m');
+            console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
+            return '';
+        }
         var script = fs.readFileSync(file_path, 'utf8');
 
         return '<script>\n' + script + '\n</script>';
@@ -148,7 +160,11 @@ function injectImports(file, paths) {
                 });
             }
 
-            if (!href) throw new Error('Can not import nonexistent element \'' + name + '\'');
+            if (!href) {
+                console.error('\x1B[31mCan not import nonexistent element\x1B[0m \x1B[32m\x1B[41m \'' + name + '\'\x1B[0m \x1B[31min ' + file.stem + '\x1B[0m');
+                console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
+                return '';
+            }
 
             return '<link rel="import" href="' + href + '">';
         }).join('\n');

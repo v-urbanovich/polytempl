@@ -85,7 +85,7 @@ For example if you have following structure:
             |- element_5/
 |- bower_components/
 ```
-you can type `<!-- import [polymer, element_3, element_5, element_1, iron-icons]-->` and polytempl will resolve all paths an replace this with `<link rel="import" href="resolved_path">`
+you can type `<!-- import [polymer, element_3, element_5, element_1, iron-icons]-->` and polytempl will resolve all paths and replace this with `<link rel="import" href="resolved_path">`
 
 #### Usage
 ```js

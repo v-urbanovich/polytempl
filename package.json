@@ -1,11 +1,17 @@
 {
   "name": "polytempl",
-  "version": "0.0.32",
+  "version": "0.9.0",
   "description": "Plugin for buildig polymer project",
   "main": "index.js",
   "scripts": {
-
   },
+  "keywords": [
+    "polymer",
+    "gulp",
+    "plugin",
+    "template",
+    "polytempl"
+  ],
   "bin": {
     "polytempl": "./index.js"
   },

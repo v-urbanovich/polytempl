@@ -29,7 +29,7 @@ class Builder {
                         return name.replace(/['\s]/g, '')
                     }).forEach((element) => {
                     imports.push(element)
-            })
+                })
             }
 
             this._imports[file.stem] = imports;
@@ -43,41 +43,41 @@ class Builder {
 
             imports_obj.fragments.forEach((name) => {
                 let imports = [];
-            getImports(this._imports, name).forEach((_import) => {
-                if (shell_imports.indexOf(_import) < 0) imports.push(_import);
-        });
-            fragments[name] = `<!-- import [${imports.join(', ')}]-->`;
-        });
+                getImports(this._imports, name).forEach((_import) => {
+                    if (shell_imports.indexOf(_import) < 0) imports.push(_import);
+                });
+                fragments[name] = `<!-- import [${imports.join(', ')}]-->`;
+            });
             shell_imports = `<!-- import [${shell_imports.join(', ')}]-->`;
 
 
             this._files.forEach((file) => {
                 if (file.isBuffer()) {
-                if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = new Buffer(String(file.contents)
-                    .replace(IMPORTS_REG, ''));
-                else if (file.stem === imports_obj.shell) {
-                    file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, shell_imports));
-                } else {
-                    file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
+                    if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = new Buffer(String(file.contents)
+                        .replace(IMPORTS_REG, ''));
+                    else if (file.stem === imports_obj.shell) {
+                        file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, shell_imports));
+                    } else {
+                        file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
+                    }
                 }
-            }
-        });
+            });
         }
 
         this._files.forEach((file) => {
             if (file.isBuffer()) {
-            file.contents = new Buffer(String(file.contents)
-                .replace(STYLES_REG, injectStyles(file))
-                .replace(IMPORTS_REG, injectImports(file, this._paths))
-                .replace(SCRIPTS_REG, injectScripts(file)));
-        }
-    })
+                file.contents = new Buffer(String(file.contents)
+                    .replace(STYLES_REG, injectStyles(file))
+                    .replace(IMPORTS_REG, injectImports(file, this._paths))
+                    .replace(SCRIPTS_REG, injectScripts(file)));
+            }
+        })
     }
 
     _clean(stream) {
         this._files.forEach((file) => {
             stream.push(file);
-    });
+        });
         this._files = [];
     }
 
@@ -102,6 +102,12 @@ class Builder {
 function injectStyles(file) {
     return function (s, filename) {
         var file_path = path.resolve(file.dirname, filename);
+        let exist = fs.existsSync(file_path);
+        if (!exist) {
+            console.error(`\x1b[31mCan not inject styles, file \x1b[0m \x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
+            console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
+            return '';
+        }
         var style = fs.readFileSync(file_path, 'utf8');
 
         return '<style>\n' + style + '\n</style>';
@@ -111,6 +117,12 @@ function injectStyles(file) {
 function injectScripts(file) {
     return function (s, filename) {
         var file_path = path.resolve(file.dirname, filename);
+        let exist = fs.existsSync(file_path);
+        if (!exist) {
+            console.error(`\x1b[31mCan not inject styles, file \x1b[0m \x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
+            console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
+            return '';
+        }
         var script = fs.readFileSync(file_path, 'utf8');
 
         return '<script>\n' + script + '\n</script>';
@@ -140,7 +152,11 @@ function injectImports(file, paths) {
                     });
                 }
 
-                if (!href) throw new Error(`Can not import nonexistent element '${name}'`);
+                if (!href) {
+                    console.error(`\x1b[31mCan not import nonexistent element\x1b[0m \x1b[32m\x1b[41m '${name}'\x1b[0m \x1b[31min ${file.stem}\x1b[0m`);
+                    console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
+                    return '';
+                }
 
                 return '<link rel="import" href="' + href + '">'
             })
@@ -152,11 +168,11 @@ function getImports(imports_list, element_name) {
     let list = [];
     (imports_list[element_name] || []).forEach((element_import) => {
         list.push(element_import);
-    getImports(imports_list, element_import).forEach((i) => {
-        if (list.indexOf(i) < 0) list.push(i);
-})
+        getImports(imports_list, element_import).forEach((i) => {
+            if (list.indexOf(i) < 0) list.push(i);
+        })
 
-});
+    });
     return list;
 }
 
