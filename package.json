@@ -1,6 +1,6 @@
 {
   "name": "polytempl",
-  "version": "0.9.0",
+  "version": "1.0.1",
   "description": "Plugin for buildig polymer project",
   "main": "index.js",
   "scripts": {

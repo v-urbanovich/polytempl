@@ -104,7 +104,7 @@ function injectStyles(file) {
         var file_path = path.resolve(file.dirname, filename);
         let exist = fs.existsSync(file_path);
         if (!exist) {
-            console.error(`\x1b[31mCan not inject styles, file \x1b[0m \x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
+            console.error(`\x1b[31mCan not inject styles, file \x1b[0m\x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
             console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
             return '';
         }
@@ -119,7 +119,7 @@ function injectScripts(file) {
         var file_path = path.resolve(file.dirname, filename);
         let exist = fs.existsSync(file_path);
         if (!exist) {
-            console.error(`\x1b[31mCan not inject styles, file \x1b[0m \x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
+            console.error(`\x1b[31mCan not inject script, file \x1b[0m\x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
             console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
             return '';
         }
@@ -153,7 +153,7 @@ function injectImports(file, paths) {
                 }
 
                 if (!href) {
-                    console.error(`\x1b[31mCan not import nonexistent element\x1b[0m \x1b[32m\x1b[41m '${name}'\x1b[0m \x1b[31min ${file.stem}\x1b[0m`);
+                    console.error(`\x1b[31mCan not import nonexistent element\x1b[0m \x1b[32m\x1b[41m'${name}'\x1b[0m \x1b[31min ${file.stem}\x1b[0m`);
                     console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
                     return '';
                 }
