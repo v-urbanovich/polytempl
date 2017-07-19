@@ -1,10 +1,9 @@
 {
   "name": "polytempl",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Plugin for buildig polymer project",
   "main": "index.js",
-  "scripts": {
-  },
+  "scripts": {},
   "keywords": [
     "polymer",
     "gulp",
@@ -26,6 +25,7 @@
   },
   "homepage": "https://github.com/v-urbanovich/polytempl#readme",
   "dependencies": {
+    "lodash": "^4.17.4",
     "through2": "^2.0.3",
     "vinyl-file": "^2.0.0",
     "vinyl-fs": "^2.4.4",

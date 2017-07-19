@@ -2,7 +2,8 @@
 
 var through2 = require('through2').obj,
     path = require('path'),
-    fs = require('fs');
+    fs = require('fs'),
+    _ = require('lodash');
 
 const STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss|.*\.css|.*\.less|.*\.sass)\s*'\s*-->/g,
     SCRIPTS_REG = /<!--\s*inject\s+scripts\s+'(.*\.js)\s*'\s*-->/g,
@@ -146,9 +147,8 @@ function injectImports(file, paths) {
                 } else {
                     var component_name = name.indexOf('/') >= 0 ? `${name}.html` : `${name}/${name}.html`;
                     paths._custom_paths.forEach(function (component_base) {
-                        let component_path = path.normalize(`${component_base}/${component_name}`);
-                        let exist = fs.existsSync(path.normalize(`${component_base}/${component_name}`));
-                        if (exist) href = path.relative(file.dirname, component_path);
+                        let component_path = getComponentPath(component_base, component_name);
+                        if (component_path) href = path.relative(file.dirname, component_path);
                     });
                 }
 
@@ -161,6 +161,19 @@ function injectImports(file, paths) {
                 return '<link rel="import" href="' + href + '">'
             })
             .join('\n');
+    }
+}
+
+function getComponentPath(component_base, component_name) {
+    if (_.isString(component_base)) {
+        let component_path = path.normalize(`${component_base}/${component_name}`);
+        let exist = fs.existsSync(component_path);
+        return exist ? component_path : null;
+    } else if (_.isObject(component_base) && !_.isArray(component_base) &&
+                component_base.path && component_base.new_base) {
+        let current_path = path.normalize(`${component_base.path}/${component_name}`);
+        let exist = fs.existsSync(current_path);
+        return exist ? path.normalize(`${component_base.new_base}/${component_name}`) : null;
     }
 }
 

@@ -6,7 +6,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 var through2 = require('through2').obj,
     path = require('path'),
-    fs = require('fs');
+    fs = require('fs'),
+    _ = require('lodash');
 
 var STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss|.*\.css|.*\.less|.*\.sass)\s*'\s*-->/g,
     SCRIPTS_REG = /<!--\s*inject\s+scripts\s+'(.*\.js)\s*'\s*-->/g,
@@ -51,29 +52,27 @@ var Builder = function () {
             var _this2 = this;
 
             if (imports_obj) {
-                (function () {
-                    var shell_imports = getImports(_this2._imports, imports_obj.shell),
-                        fragments = {};
+                var shell_imports = getImports(this._imports, imports_obj.shell),
+                    fragments = {};
 
-                    imports_obj.fragments.forEach(function (name) {
-                        var imports = [];
-                        getImports(_this2._imports, name).forEach(function (_import) {
-                            if (shell_imports.indexOf(_import) < 0) imports.push(_import);
-                        });
-                        fragments[name] = '<!-- import [' + imports.join(', ') + ']-->';
+                imports_obj.fragments.forEach(function (name) {
+                    var imports = [];
+                    getImports(_this2._imports, name).forEach(function (_import) {
+                        if (shell_imports.indexOf(_import) < 0) imports.push(_import);
                     });
-                    shell_imports = '<!-- import [' + shell_imports.join(', ') + ']-->';
+                    fragments[name] = '<!-- import [' + imports.join(', ') + ']-->';
+                });
+                shell_imports = '<!-- import [' + shell_imports.join(', ') + ']-->';
 
-                    _this2._files.forEach(function (file) {
-                        if (file.isBuffer()) {
-                            if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, ''));else if (file.stem === imports_obj.shell) {
-                                file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, shell_imports));
-                            } else {
-                                file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
-                            }
+                this._files.forEach(function (file) {
+                    if (file.isBuffer()) {
+                        if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, ''));else if (file.stem === imports_obj.shell) {
+                            file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, shell_imports));
+                        } else {
+                            file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
                         }
-                    });
-                })();
+                    }
+                });
             }
 
             this._files.forEach(function (file) {
@@ -154,9 +153,8 @@ function injectImports(file, paths) {
             } else {
                 var component_name = name.indexOf('/') >= 0 ? name + '.html' : name + '/' + name + '.html';
                 paths._custom_paths.forEach(function (component_base) {
-                    var component_path = path.normalize(component_base + '/' + component_name);
-                    var exist = fs.existsSync(path.normalize(component_base + '/' + component_name));
-                    if (exist) href = path.relative(file.dirname, component_path);
+                    var component_path = getComponentPath(component_base, component_name);
+                    if (component_path) href = path.relative(file.dirname, component_path);
                 });
             }
 
@@ -169,6 +167,18 @@ function injectImports(file, paths) {
             return '<link rel="import" href="' + href + '">';
         }).join('\n');
     };
+}
+
+function getComponentPath(component_base, component_name) {
+    if (_.isString(component_base)) {
+        var component_path = path.normalize(component_base + '/' + component_name);
+        var exist = fs.existsSync(component_path);
+        return exist ? component_path : null;
+    } else if (_.isObject(component_base) && !_.isArray(component_base) && component_base.path && component_base.new_base) {
+        var current_path = path.normalize(component_base.path + '/' + component_name);
+        var _exist = fs.existsSync(current_path);
+        return _exist ? path.normalize(component_base.new_base + '/' + component_name) : null;
+    }
 }
 
 function getImports(imports_list, element_name) {
