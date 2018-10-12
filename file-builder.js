@@ -1,205 +1,240 @@
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+const through2 = require('through2').obj;
+const path = require('path');
+const fs = require('fs');
+const _ = require('lodash');
+const gulp = require('gulp');
+const webpackStream = require('webpack-stream');
+const named = require('vinyl-named');
+const plumber = require('gulp-plumber');
+const notify = require('gulp-notify');
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+const STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss|.*\.css|.*\.less|.*\.sass)\s*'\s*-->/g;
+const SCRIPTS_REG = /<!--\s*inject\s+scripts\s+'(.*\.js)\s*'\s*-->/;
+const IMPORTS_REG = /<!--\s*import\s*\[([\s\S]*?)]\s*-->/g;
+const JS_IMPORTS_REG = /([\s*;]|^)import\s+[`'"*{\w]/g;
 
-var through2 = require('through2').obj,
-    path = require('path'),
-    fs = require('fs'),
-    _ = require('lodash');
+const defaultWebpackOptions = {
+    watch: false,
+    devtool: false,
+    mode: 'production'
+};
 
-var STYLES_REG = /<!--\s*inject\s+styles\s+'\s*(.*\.scss|.*\.css|.*\.less|.*\.sass)\s*'\s*-->/g,
-    SCRIPTS_REG = /<!--\s*inject\s+scripts\s+'(.*\.js)\s*'\s*-->/g,
-    IMPORTS_REG = /<!--\s*import\s*\[([\s\S]*?)]\s*-->/g;
-
-var Builder = function () {
-    function Builder() {
-        _classCallCheck(this, Builder);
-
+class Builder {
+    constructor() {
         this._paths = {};
         this._files = [];
         this._imports = {};
     }
 
-    _createClass(Builder, [{
-        key: '_register',
-        value: function _register(file, imports_obj) {
-            var _this = this;
+    _register(file, imports_obj) {
+        this._paths[file.stem] = file.path;
+        this._files.push(file);
+        if (imports_obj && file.isBuffer()) {
+            let imports = [];
 
-            this._paths[file.stem] = file.path;
-            this._files.push(file);
-            if (imports_obj && file.isBuffer()) {
-                (function () {
-                    var imports = [];
-
-                    var result = void 0;
-                    while (result = IMPORTS_REG.exec(file.contents)) {
-                        result[1].split(/\s*,\s*/).map(function (name) {
-                            return name.replace(/['\s]/g, '');
-                        }).forEach(function (element) {
-                            imports.push(element);
-                        });
-                    }
-
-                    _this._imports[file.stem] = imports;
-                })();
+            let result;
+            while (result = IMPORTS_REG.exec(file.contents)) {
+                result[1].split(/\s*,\s*/)
+                    .map(function (name) {
+                        return name.replace(/['\s]/g, '')
+                    }).forEach((element) => {
+                    imports.push(element)
+                })
             }
+
+            this._imports[file.stem] = imports;
         }
-    }, {
-        key: '_inject',
-        value: function _inject(imports_obj) {
-            var _this2 = this;
+    }
 
-            if (imports_obj) {
-                var shell_imports = getImports(this._imports, imports_obj.shell),
-                    fragments = {};
+    _inject(imports_obj) {
+        if (imports_obj) {
+            let shell_imports = getImports(this._imports, imports_obj.shell),
+                fragments = {};
 
-                imports_obj.fragments.forEach(function (name) {
-                    var imports = [];
-                    getImports(_this2._imports, name).forEach(function (_import) {
-                        if (shell_imports.indexOf(_import) < 0) imports.push(_import);
-                    });
-                    fragments[name] = '<!-- import [' + imports.join(', ') + ']-->';
+            imports_obj.fragments.forEach((name) => {
+                let imports = [];
+                getImports(this._imports, name).forEach((_import) => {
+                    if (shell_imports.indexOf(_import) < 0) imports.push(_import);
                 });
-                shell_imports = '<!-- import [' + shell_imports.join(', ') + ']-->';
+                fragments[name] = `<!-- import [${imports.join(', ')}]-->`;
+            });
+            shell_imports = `<!-- import [${shell_imports.join(', ')}]-->`;
 
-                this._files.forEach(function (file) {
-                    if (file.isBuffer()) {
-                        if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, ''));else if (file.stem === imports_obj.shell) {
-                            file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, shell_imports));
-                        } else {
-                            file.contents = new Buffer(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
-                        }
-                    }
-                });
-            }
 
-            this._files.forEach(function (file) {
+            this._files.forEach((file) => {
                 if (file.isBuffer()) {
-                    file.contents = new Buffer(String(file.contents).replace(STYLES_REG, injectStyles(file)).replace(IMPORTS_REG, injectImports(file, _this2._paths)).replace(SCRIPTS_REG, injectScripts(file)));
+                    if (file.stem !== imports_obj.shell && imports_obj.fragments.indexOf(file.stem) < 0) file.contents = Buffer.from(String(file.contents)
+                        .replace(IMPORTS_REG, ''));
+                    else if (file.stem === imports_obj.shell) {
+                        file.contents = Buffer.from(String(file.contents).replace(IMPORTS_REG, shell_imports));
+                    } else {
+                        file.contents = Buffer.from(String(file.contents).replace(IMPORTS_REG, fragments[file.stem]));
+                    }
                 }
             });
         }
-    }, {
-        key: '_clean',
-        value: function _clean(stream) {
-            this._files.forEach(function (file) {
-                stream.push(file);
-            });
-            this._files = [];
-        }
-    }, {
-        key: 'start',
-        value: function start(custom_paths, reduce_imports) {
-            this._paths._custom_paths = custom_paths || [];
-            var builder = this;
 
-            return through2(function (file, enc, callback) {
+        let promises = [];
+        this._files.forEach((file) => {
+            if (!file.isBuffer()) { return; }
+
+            const [match, filePath] = String(file.contents).match(SCRIPTS_REG) || [false];
+
+            file.contents = Buffer.from(String(file.contents)
+                .replace(STYLES_REG, injectStyles(file))
+                .replace(IMPORTS_REG, injectImports(file, this._paths)));
+
+            if (match) {
+                const resolvedPath = path.resolve(file.dirname, filePath);
+                promises.push(injectScriptsText(resolvedPath, file, this.webpackOptions));
+            }
+        });
+
+        return Promise.all(promises);
+    }
+
+    _clean(stream) {
+        this._files.forEach((file) => {
+            stream.push(file);
+        });
+        this._files = [];
+    }
+
+    start(custom_paths, reduce_imports, webpackOptions) {
+        this._paths._custom_paths = custom_paths || [];
+        this.webpackOptions = webpackOptions || defaultWebpackOptions;
+        let builder = this;
+
+        return through2(
+            function (file, enc, callback) {
                 builder._register(file, reduce_imports);
-                callback();
-            }, function (callback) {
-                builder._inject(reduce_imports);
-                builder._clean(this);
-                callback();
-            });
-        }
-    }]);
+                callback()
+            },
+            function (callback) {
+                builder
+                    ._inject(reduce_imports)
+                    .then(() => {
+                        builder._clean(this);
+                        callback();
+                    });
 
-    return Builder;
-}();
+            }
+        )
+    }
+}
 
 function injectStyles(file) {
     return function (s, filename) {
-        var file_path = path.resolve(file.dirname, filename);
-        var exist = fs.existsSync(file_path);
+        const file_path = path.resolve(file.dirname, filename);
+        let exist = fs.existsSync(file_path);
         if (!exist) {
-            console.error('\x1B[31mCan not inject styles, file \x1B[0m\x1B[32m\x1B[41m\'' + filename + '\'\x1B[0m \x1B[31min not found\x1B[0m');
-            console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
+            console.error(`\x1b[31mCan not inject styles, file \x1b[0m\x1b[32m\x1b[41m'${filename}'\x1b[0m \x1b[31min not found\x1b[0m`);
+            console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
             return '';
         }
-        var style = fs.readFileSync(file_path, 'utf8');
+        const style = fs.readFileSync(file_path, 'utf8');
 
         return '<style>\n' + style + '\n</style>';
-    };
+    }
 }
 
-function injectScripts(file) {
-    return function (s, filename) {
-        var file_path = path.resolve(file.dirname, filename);
-        var exist = fs.existsSync(file_path);
-        if (!exist) {
-            console.error('\x1B[31mCan not inject script, file \x1B[0m\x1B[32m\x1B[41m\'' + filename + '\'\x1B[0m \x1B[31min not found\x1B[0m');
-            console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
-            return '';
-        }
-        var script = fs.readFileSync(file_path, 'utf8');
+function injectScriptsText(scriptPath = '', htmlFile, wpOptions) {
+    let exist = fs.existsSync(scriptPath);
+    if (!exist) {
+        console.error(`\x1b[31mCan not inject script, file \x1b[0m\x1b[32m\x1b[41m'${scriptPath}'\x1b[0m \x1b[31min not found\x1b[0m`);
+        return Promise.resolve();
+    }
 
-        return '<script>\n' + script + '\n</script>';
-    };
+    const script = fs.readFileSync(scriptPath, 'utf8');
+    const hasImports = !!script.match(JS_IMPORTS_REG);
+    if (!hasImports) {
+        replaceScripts(htmlFile, '<script>\n' + script + '\n</script>');
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        gulp.src(scriptPath)
+            .pipe(plumber({
+                errorHandler: notify.onError(err => ({
+                    title: 'Webpack',
+                    message: err.message
+                }))
+            }))
+            .pipe(named())
+            .pipe(webpackStream(wpOptions))
+            .pipe(through2(
+                function (file, enc, callback) {
+                    replaceScripts(htmlFile, '<script>\n' + String(file.contents) + '\n</script>');
+                    callback(null, file)
+                }))
+            .on('data', () => resolve());
+    })
+}
+
+function replaceScripts(file, script) {
+    file.contents = Buffer.from(String(file.contents)
+        .replace(SCRIPTS_REG, script));
 }
 
 function injectImports(file, paths) {
     return function (s, filenames) {
-        return filenames.split(/\s*,\s*/).map(function (name) {
-            return name.replace(/['\s]/g, '');
-        }).map(function (name) {
-            if (!name) return '';
+        return filenames
+            .split(/\s*,\s*/)
+            .map(function (name) {
+                return name.replace(/['\s]/g, '')
+            })
+            .map(function (name) {
+                if (!name) return '';
 
-            var href;
+                let href;
 
-            if (paths[name]) {
-                href = path.relative(file.dirname, paths[name]);
-            } else {
-                var component_name = name.indexOf('/') >= 0 ? name + '.html' : name + '/' + name + '.html';
-                paths._custom_paths.forEach(function (component_base) {
-                    var component_path = getComponentPath(component_base, component_name);
-                    if (component_path) href = path.relative(file.dirname, component_path);
-                });
-            }
+                if (paths[name]) {
+                    href = path.relative(file.dirname, paths[name]);
+                } else {
+                    const component_name = name.indexOf('/') >= 0 ? `${name}.html` : `${name}/${name}.html`;
+                    paths._custom_paths.forEach(function (component_base) {
+                        let component_path = getComponentPath(component_base, component_name);
+                        if (component_path) href = path.relative(file.dirname, component_path);
+                    });
+                }
 
-            if (!href) {
-                console.error('\x1B[31mCan not import nonexistent element\x1B[0m \x1B[32m\x1B[41m\'' + name + '\'\x1B[0m \x1B[31min ' + file.stem + '\x1B[0m');
-                console.error('\x1B[31mError in \x1B[33m\'' + path.relative(process.cwd(), file.path) + '\'\x1B[0m');
-                return '';
-            }
+                if (!href) {
+                    console.error(`\x1b[31mCan not import nonexistent element\x1b[0m \x1b[32m\x1b[41m'${name}'\x1b[0m \x1b[31min ${file.stem}\x1b[0m`);
+                    console.error(`\x1b[31mError in \x1b[33m'${path.relative(process.cwd(), file.path)}'\x1b[0m`);
+                    return '';
+                }
 
-            return '<link rel="import" href="' + href + '">';
-        }).join('\n');
-    };
+                return '<link rel="import" href="' + href + '">'
+            })
+            .join('\n');
+    }
 }
 
 function getComponentPath(component_base, component_name) {
     if (_.isString(component_base)) {
-        var component_path = path.normalize(component_base + '/' + component_name);
-        var exist = fs.existsSync(component_path);
+        let component_path = path.normalize(`${component_base}/${component_name}`);
+        let exist = fs.existsSync(component_path);
         return exist ? component_path : null;
-    } else if (_.isObject(component_base) && !_.isArray(component_base) && component_base.path && component_base.new_base) {
-        var current_path = path.normalize(component_base.path + '/' + component_name);
-        var _exist = fs.existsSync(current_path);
-        return _exist ? path.normalize(component_base.new_base + '/' + component_name) : null;
+    } else if (_.isObject(component_base) && !_.isArray(component_base) &&
+                component_base.path && component_base.new_base) {
+        let current_path = path.normalize(`${component_base.path}/${component_name}`);
+        let exist = fs.existsSync(current_path);
+        return exist ? path.normalize(`${component_base.new_base}/${component_name}`) : null;
     }
 }
 
 function getImports(imports_list, element_name) {
-    var list = [];
-    (imports_list[element_name] || []).forEach(function (element_import) {
+    let list = [];
+    (imports_list[element_name] || []).forEach((element_import) => {
         list.push(element_import);
-        getImports(imports_list, element_import).forEach(function (i) {
+        getImports(imports_list, element_import).forEach((i) => {
             if (list.indexOf(i) < 0) list.push(i);
-        });
+        })
+
     });
     return list;
-}
-
-function wasModified(file, manifest) {
-    var mtime = file.stats.mtime,
-        last_mtime = manifest[file.relative];
-
-    if (!last_mtime || last_mtime.getTime() !== mtime.getTime()) {
-        manifest[file.relative] = mtime;
-        return true;
-    }
 }
 
 module.exports = Builder;
