@@ -76,7 +76,7 @@ class Builder {
             });
         }
 
-        let promises = [];
+        let promise = Promise.resolve();
         this._files.forEach((file) => {
             if (!file.isBuffer()) { return; }
 
@@ -88,11 +88,11 @@ class Builder {
 
             if (match) {
                 const resolvedPath = path.resolve(file.dirname, filePath);
-                promises.push(injectScriptsText(resolvedPath, file, this.webpackOptions));
+                promise = promise.then(() => injectScriptsText(resolvedPath, file, this.webpackOptions));
             }
         });
 
-        return Promise.all(promises);
+        return promise;
     }
 
     _clean(stream) {
