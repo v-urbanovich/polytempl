@@ -18,7 +18,7 @@ const JS_IMPORTS_REG = /([\s*;]|^)import\s+[`'"*{\w]/g;
 const defaultWebpackOptions = {
     watch: false,
     devtool: false,
-    mode: 'production'
+    mode: 'development'
 };
 
 class Builder {
@@ -163,7 +163,7 @@ function injectScriptsText(scriptPath = '', htmlFile, wpOptions) {
                 }))
             }))
             .pipe(named())
-            .pipe(webpackStream(wpOptions))
+            .pipe(webpackStream(Object.assign({}, wpOptions)))
             .pipe(through2(
                 function (file, enc, callback) {
                     replaceScripts(htmlFile, '<script>\n' + String(file.contents) + '\n</script>');
